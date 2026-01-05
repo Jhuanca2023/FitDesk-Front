@@ -1,0 +1,40 @@
+import { create } from "zustand";
+import { useShallow } from "zustand/shallow";
+
+interface ProfileState {
+  isEditing: boolean;
+  imageToCrop: string | null;
+  newProfileImage: File | null;
+  actions: {
+    setIsEditing: (isEditing: boolean) => void;
+    setImageToCrop: (image: string | null) => void;
+    setNewProfileImage: (file: File | null) => void;
+    reset: () => void;
+  };
+}
+
+const useProfileStore = create<ProfileState>((set) => ({
+  isEditing: false,
+  imageToCrop: null,
+  newProfileImage: null,
+  actions: {
+    setIsEditing: (isEditing) => set({ isEditing }),
+    setImageToCrop: (image) => set({ imageToCrop: image }),
+    setNewProfileImage: (file) => set({ newProfileImage: file }),
+    reset: () =>
+      set({ isEditing: false, newProfileImage: null, imageToCrop: null }),
+  },
+}));
+
+export const useIsEditing = () => useProfileStore((state) => state.isEditing);
+
+export const useProfileImageState = () =>
+  useProfileStore(
+    useShallow((state) => ({
+      imageToCrop: state.imageToCrop,
+      newProfileImage: state.newProfileImage,
+    })),
+  );
+
+export const useProfileActions = () =>
+  useProfileStore((state) => state.actions);

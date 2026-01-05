@@ -1,0 +1,44 @@
+[
+  {
+    "title": "Programación y Reservas",
+    "description": "Sistema de reservas automatizado que permite a los clientes reservar clases o sesiones de entrenamiento de forma sencilla.",
+    "href": "/reserva-clase",
+    "icon": "Calendar",
+    "alt": "Programación y reservas"
+  },
+  {
+    "title": "Facturación en Línea",
+    "description": "Genera y envía automáticamente facturas a tus clientes, con seguimiento de pagos y recordatorios automáticos.",
+    "href": "#",
+    "icon": "Wallet",
+    "alt": "Facturación en línea"
+  },
+  {
+    "title": "Seguimiento de Clientes",
+    "description": "Monitorea el progreso de tus clientes, registra métricas clave y mantén un historial detallado de su evolución.",
+    "href": "#",
+    "icon": "Users",
+    "alt": "Seguimiento de clientes"
+  },
+  {
+    "title": "Comunicación Integrada",
+    "description": "Mantén contacto directo con tus clientes a través de mensajería integrada, notificaciones y recordatorios automáticos.",
+    "href": "#",
+    "icon": "MessageSquare",
+    "alt": "Comunicación integrada"
+  },
+  {
+    "title": "Reportes y Análisis",
+    "description": "Accede a informes detallados sobre el rendimiento de tu negocio, asistencia de clientes y métricas financieras.",
+    "href": "#",
+    "icon": "BarChart2",
+    "alt": "Reportes y análisis"
+  },
+  {
+    "title": "Gestión de Clientes",
+    "description": "Administra los perfiles de tus clientes, historial de pagos, preferencias y más en un solo lugar.",
+    "href": "#",
+    "icon": "UserCheck",
+    "alt": "Gestión de clientes"
+  }
+]

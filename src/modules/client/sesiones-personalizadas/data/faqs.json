@@ -1,0 +1,26 @@
+[
+  {
+    "question": "¿Cómo puedo programar una sesión de entrenamiento en FitDesk?",
+    "answer": "Puedes programar sesiones de entrenamiento desde el módulo de Calendario. Simplemente selecciona la fecha y hora, elige el tipo de sesión y los clientes que asistirán. El sistema te permitirá gestionar la asistencia y el seguimiento de cada sesión."
+  },
+  {
+    "question": "¿Puedo personalizar los planes de entrenamiento para mis clientes?",
+    "answer": "¡Sí! FitDesk te permite crear planes de entrenamiento completamente personalizados. Puedes seleccionar ejercicios de nuestra biblioteca, establecer series y repeticiones, y guardar plantillas para uso futuro. Además, puedes ajustar los planes según el progreso de cada cliente."
+  },
+  {
+    "question": "¿Cómo funciona el seguimiento del progreso de mis clientes?",
+    "answer": "Nuestro sistema te permite registrar métricas clave, asistencia, y el rendimiento de cada cliente. Puedes ver gráficos de progreso, comparar resultados a lo largo del tiempo y generar informes detallados para compartir con tus clientes."
+  },
+  {
+    "question": "¿Puedo gestionar los pagos de mis clientes con FitDesk?",
+    "answer": "Sí, FitDesk incluye un módulo de facturación que te permite gestionar pagos recurrentes, enviar recordatorios automáticos y hacer seguimiento del estado de pago de cada cliente. Puedes generar facturas personalizadas y recibir notificaciones de pagos pendientes."
+  },
+  {
+    "question": "¿Cómo puedo comunicarme con mis clientes a través de la plataforma?",
+    "answer": "FitDesk incluye un sistema de mensajería integrado que te permite comunicarte directamente con tus clientes. Puedes enviar mensajes individuales o grupales, programar recordatorios automáticos y compartir actualizaciones de entrenamiento."
+  },
+  {
+    "question": "¿Qué tipo de informes puedo generar en FitDesk?",
+    "answer": "Puedes generar informes de asistencia, progreso de clientes, ingresos, y más. Los informes son personalizables y se pueden exportar en diferentes formatos (PDF, Excel) para compartirlos con tu equipo o con los clientes."
+  }
+]

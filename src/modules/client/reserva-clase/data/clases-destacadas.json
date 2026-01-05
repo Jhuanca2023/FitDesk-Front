@@ -1,0 +1,54 @@
+{
+  "clasesDestacadas": [
+    {
+      "id": "1",
+      "nombre": "Funcional Training",
+      "instructor": "Carlos Mendoza",
+      "rating": 4.8,
+      "imagen": "https://img.freepik.com/foto-gratis/gente-tiro-completo-entrenando-juntas-gimnasio_23-2150290026.jpg?t=st=1760303773~exp=1760307373~hmac=8ee306a62d1443be0680b2adb5376a3bb754d796c3eadb5d867511f48efe1d9e&w=1060",
+      "descripcion": "Entrenamiento completo que combina fuerza, resistencia y coordinación. Ideal para mejorar el rendimiento físico diario.",
+      "etiquetas": "#Fuerza #Coordinación #Resistencia"
+    },
+    {
+      "id": "2",
+      "nombre": "Cardio Burn",
+      "instructor": "María López",
+      "rating": 4.9,
+      "imagen": "https://res.cloudinary.com/dgtgmsqo7/image/upload/v1761168751/WhatsApp_Image_2025-10-22_at_4.30.38_PM_3_csiiz1.jpg",
+      "descripcion": "Entrenamiento cardiovascular con música motivadora para quemar calorías y mejorar tu resistencia.",
+      "etiquetas": "#Cardio #Energía #Motivación"
+    },
+    {
+      "id": "3",
+      "nombre": "Cross Training",
+      "instructor": "Roberto Silva",
+      "rating": 4.7,
+      "imagen": "https://res.cloudinary.com/dgtgmsqo7/image/upload/v1761168751/WhatsApp_Image_2025-10-22_at_4.30.38_PM_2_ossh0g.jpg",
+      "descripcion": "Rutinas funcionales con pesas, cuerdas y ejercicios de alta intensidad. ¡Desafía tus límites!",
+      "etiquetas": "#CrossFit #Desafío #FuerzaTotal"
+    },
+    {
+      "id": "4",
+      "nombre": "Box Fit",
+      "instructor": "Diego Morales",
+      "rating": 4.6,
+      "imagen": "https://res.cloudinary.com/dgtgmsqo7/image/upload/v1761168752/WhatsApp_Image_2025-10-22_at_4.30.38_PM_tsglq0.jpg",
+      "descripcion": "Entrenamiento de boxeo sin contacto. Mejora fuerza, agilidad y libera estrés.",
+      "etiquetas": "#Boxeo #Cardio #Poder"
+    },
+    {
+      "id": "5",
+      "nombre": "Entrenamiento Personalizado",
+      "instructor": "Ana García",
+      "rating": 5.0,
+      "imagen": "https://res.cloudinary.com/dgtgmsqo7/image/upload/v1761168750/WhatsApp_Image_2025-10-22_at_4.30.38_PM_1_fnhype.jpg",
+      "descripcion": "Sesiones 1 a 1 con tu coach para alcanzar objetivos específicos con seguimiento constante.",
+      "etiquetas": "#PersonalCoach #Objetivos #Progreso"
+    }
+  ],
+  "estadisticas": {
+    "recetasPositivas": 1300,
+    "videosEjercicios": 1000,
+    "instructores": 1500
+  }
+}

@@ -1,0 +1,455 @@
+name: fitdesk
+services:
+  db:
+    container_name: db-fitdesk
+    image: postgres:16.1
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./sql/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGADMIN_DEFAULT_EMAIL: fitdesk@admin.com
+      PGADMIN_DEFAULT_PASSWORD: fitdesk
+    networks:
+      - fitdesk-network
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: fitdesk@admin.com
+      PGADMIN_DEFAULT_PASSWORD: fitdesk
+    networks:
+      - fitdesk-network
+
+  mongo-db:
+    build:
+      context: ./mongo
+    image: local-mongo:7
+    container_name: mongo-db
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: chats
+    command:
+      [
+        "mongod",
+        "--replSet",
+        "rs0",
+        "--bind_ip_all",
+        "--keyFile",
+        "/etc/mongo-keyfile/mongo-keyfile",
+      ]
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - fitdesk-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--username",
+          "admin",
+          "--password",
+          "admin",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand({ping:1})",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  kafka:
+    container_name: msg-broker
+    image: confluentinc/cp-kafka:7.8.0
+    hostname: kafka
+    restart: always
+    user: root
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_BROKER_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      CLUSTER_ID: 'EmptNWtoR4GGWx-BH6nGLQ'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "kafka-topics",
+          "--bootstrap-server",
+          "localhost:9092",
+          "--list",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - fitdesk-network
+
+  kafka-UI:
+    container_name: kafka-UI
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-kraft
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - fitdesk-network
+
+  config-server:
+    container_name: config-server
+    build:
+      context: ../config-server
+      dockerfile: Dockerfile.dev
+    restart: always
+    ports:
+      - "7777:7777"
+    volumes:
+      - ../config-server:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - CONFIG_SERVER_PORT=7777
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      - GIT_USERNAME=${GIT_USERNAME}
+      - GIT_TOKEN=${GIT_TOKEN}
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q  spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - "-f"
+        - http://localhost:7777/actuator/health
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  eureka-server:
+    container_name: eureka-server
+    build:
+      context: ../eureka-server
+      dockerfile: Dockerfile.dev
+    restart: always
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - fitdesk-network
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - "-f"
+        - http://localhost:8761/actuator/health
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  gateway:
+    container_name: gateway
+    build:
+      context: ../gateway
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "9090:9090"
+      - "5001:5005"
+    volumes:
+      - ../gateway:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q  spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+
+  msvc-security:
+    container_name: msvc-security
+    build:
+      context: ../msvc-security
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "9091:9091"
+      - "5002:5005"
+    volumes:
+      - ../msvc-security:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q  spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+
+  msvc-classes:
+    container_name: msvc-classes
+    build:
+      context: ../msvc-classes
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "9094:9094"
+      - "5005:5005"
+    volumes:
+      - ../msvc-classes:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      - CLOUDINARY_NAME=${CLOUDINARY_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - AZURE_STORAGE_NAME=${AZURE_STORAGE_NAME}
+      - AZURE_ACCOUNT_KEY=${AZURE_ACCOUNT_KEY}
+      - AZURE_CONTAINER_NAME=${AZURE_CONTAINER_NAME}
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q  spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+
+  msvc-notifications:
+    container_name: msvc-notifications
+    build:
+      context: ../msvc-notifications
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    ports:
+      - "9095:9095"
+      - "5006:5005"
+    volumes:
+      - ../msvc-notifications:/app
+    environment:
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      - APP_EMAIL_FROM=${APP_EMAIL_FROM}
+      - EMAIL_PASSWORD_CHANGED_SUBJECT=${EMAIL_PASSWORD_CHANGED_SUBJECT}  
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q  spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+
+  msvc-chat:
+    container_name: msvc-chat
+    build:
+      context: ../msvc-chat
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      mongo-db:
+        condition: service_healthy
+    ports:
+      - "9096:9096"
+      - "5007:5005"
+    volumes:
+      - ../msvc-chat:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q  spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+
+  msvc-billing:
+    container_name: msvc-billing
+    build:
+      context: ../msvc-billing
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "9097:9097"
+      - "5004:5005"
+    volumes:
+      - ../msvc-billing:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      - MERCADOPAGO_ACCESS_TOKEN=${MERCADOPAGO_ACCESS_TOKEN}
+      - MERCADOPAGO_WEBHOOK=${MERCADOPAGO_WEBHOOK}
+      - MERCADOPAGO_PUBLIC_KEY=${MERCADOPAGO_PUBLIC_KEY}
+      - CLOUDINARY_NAME=${CLOUDINARY_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+
+  msvc-members:
+    container_name: msvc-members
+    build:
+      context: ../msvc-members
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      # kafka:
+      #   condition: service_healthy
+    ports:
+      - "9098:9098"
+      - "5003:5005"
+    volumes:
+      - ../msvc-members:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+      - CLOUDINARY_NAME=${CLOUDINARY_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+    command: sh -c "chmod +x /app/mvnw && exec /app/mvnw -q  spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    networks:
+      - fitdesk-network
+
+  msvc-ai-chatbot:
+    container_name: msvc-ai-chatbot
+    build:
+      context: ../msvc-ai-chatbot
+      dockerfile: Dockerfile.dev
+    restart: always
+    depends_on:
+      gateway:
+        condition: service_started
+    ports:
+      - "9099:9099"
+    volumes:
+      - ../msvc-ai-chatbot:/app
+    environment:
+      - PORT=9099
+      - GATEWAY_URL=http://gateway:9090
+      - CLASSES_SERVICE_URL=http://msvc-classes:9094
+      - MEMBERS_SERVICE_URL=http://msvc-members:9098
+      - SECURITY_SERVICE_URL=http://msvc-security:9091
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyAt1gXtydbgq2YoJ5p8LBM67YOuh85qPz4}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-pro}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - USE_LOCAL_AI=${USE_LOCAL_AI:-false}
+      - LOCAL_AI_URL=${LOCAL_AI_URL:-http://host.docker.internal:11434}
+      - LOCAL_AI_MODEL=${LOCAL_AI_MODEL:-llama3.2}
+    networks:
+      - fitdesk-network
+
+  grafana:
+   image: grafana/grafana:latest
+   container_name: grafana
+   restart: unless-stopped
+   volumes:
+     - grafana-data:/var/lib/grafana
+   ports:
+     - 3000:3000
+   networks:
+     - fitdesk-network
+   depends_on:
+     - prometheus
+
+  prometheus:
+   image: prom/prometheus:latest
+   container_name: prometheus
+   restart: unless-stopped
+   volumes:
+     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+     - prometheus-data:/prometheus
+   ports:
+     - 9089:9089
+   command:
+     - '--config.file=/etc/prometheus/prometheus.yml'
+     - '--storage.tsdb.path=/prometheus'
+     - '--storage.tsdb.retention.time=1y'
+     - '--web.enable-lifecycle'
+   networks:
+     - fitdesk-network
+
+
+volumes:
+  db-data:
+  mongo-data:
+  kafka-data:
+  grafana-data:
+  prometheus-data:
+
+networks:
+  fitdesk-network:
+    driver: bridge

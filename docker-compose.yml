@@ -1,0 +1,197 @@
+name: fitdesk-backend
+services:
+  db-fitdesk:
+    image: postgres:16.1
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  pgadmin:
+    container_name: pgadmin-fitdesk
+    image: dpage/pgadmin4
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - '5050:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: fitdesk@admin.com
+      PGADMIN_DEFAULT_PASSWORD: fitdesk
+
+  mongo-db:
+    container_name: mongo-db
+    image: mongo:7.0.5-rc0
+    restart: always
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: chats
+    hostname: mongodb
+
+  # Dashboard para kafka , balanceador de carga para kafka
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:7.4.3
+  #   container_name: load-balancer
+  #   restart: always
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+  #   ports:
+  #     - "2181:2181"
+
+  # kafka:
+  #   image: confluentinc/cp-kafka:7.4.3
+  #   container_name: msg-broker
+  #   restart: always
+  #   depends_on:
+  #     - zookeeper
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+  #   ports:
+  #     - "9092:9092"
+
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:latest
+  #   container_name: kafka-ui
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: "local-kafka"
+  #     KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "msg-broker:9092"
+  #   depends_on:
+  #     - kafka
+
+
+  config-server:
+    image: raydberg25/fitdesk-config-server:latest
+    ports:
+      - "7777:7777"
+    environment:
+    - SPRING_PROFILES_ACTIVE=dev,native
+    - CONFIG_SERVER_PORT=7777
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:7777/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  eureka-server:
+    image: raydberg25/fitdesk-eureka:latest
+    ports:
+      - "8761:8761"
+    environment:
+    - SPRING_PROFILES_ACTIVE=dev
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  gateway:
+    image: raydberg25/fitdesk-gateway:latest
+    ports:
+      - "9090:9090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+  
+  msvc-billing:
+    image: raydberg25/fitdesk-msvc-billing:latest
+    ports:
+      - "9093:9093"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  msvc-chat:
+    image: raydberg25/fitdesk-msvc-chat:latest
+    ports:
+      - "9096:9096"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  msvc-classes:
+    image: raydberg25/fitdesk-msvc-classes:latest
+    ports:
+      - "9094:9094"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  msvc-members:
+    image: raydberg25/fitdesk-msvc-members:latest
+    ports:
+      - "9092:9092"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  msvc-notifications:
+    image: raydberg25/fitdesk-msvc-notifications:latest
+    ports:
+      - "9095:9095"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  msvc-security:
+    image: raydberg25/fitdesk-msvc-security:latest
+    ports:
+      - "9091:9091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:7777
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+
+volumes:
+  db-data: null
