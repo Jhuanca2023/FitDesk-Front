@@ -157,7 +157,7 @@ export const PriceSection = () => {
                             <p className="text-sm text-muted-foreground">Calculando costos de actualización...</p>
                         </div>
                     ) : (
-                        plans?.map((plan, index) => (
+                        (Array.isArray(plans) ? plans : []).map((plan, index) => (
                             <motion.div
                                 key={plan.id}
                                 initial={{ opacity: 0, y: 20 }}
@@ -220,7 +220,7 @@ export const PriceSection = () => {
                                     </CardHeader>
                                     <CardContent className="grid gap-3 pb-6">
                                         {renderPrice(plan)}
-                                        {plan.features.map((feature, featureIndex) => (
+                                        {(Array.isArray(plan.features) ? plan.features : []).map((feature, featureIndex) => (
                                             <motion.div
                                                 key={`${plan.id}-${featureIndex}`}
                                                 initial={{ opacity: 0, x: -5 }}
