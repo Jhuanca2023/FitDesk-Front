@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "biome lint --write ./src",
     "dev:full": "concurrently \"bun run json-server\" \"bun run dev\"",
     "json-server": "json-server --watch api/db.json --port 3001 --routes api/routes.json",

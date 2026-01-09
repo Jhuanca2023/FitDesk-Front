@@ -18,7 +18,7 @@ export function useChat(conversationId?: string) {
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery({
     queryKey: ['conversations'],
     queryFn: async (): Promise<Conversation[]> => {
-      const response = await fitdeskApi.get('/chat/conversations');
+      const response = await fitdeskApi.get<Conversation[]>('/chat/conversations');
       return response.data;
     },
     staleTime: 30000,
@@ -29,8 +29,8 @@ export function useChat(conversationId?: string) {
     queryKey: ['messages', conversationId],
     queryFn: async (): Promise<ChatMessage[]> => {
       if (!conversationId) return [];
-      const response = await fitdeskApi.get(`/chat/conversations/${conversationId}/messages`);
-      return response.data as ChatMessage[];
+      const response = await fitdeskApi.get<ChatMessage[]>(`/chat/conversations/${conversationId}/messages`);
+      return response.data;
     },
     enabled: !!conversationId,
     staleTime: Infinity,
@@ -45,8 +45,7 @@ export function useChat(conversationId?: string) {
       }
       return [...prev, message];
     });
-
-    queryClient.setQueryData(['conversations'], (old: Conversation[] | undefined) => {
+    queryClient.setQueryData<Conversation[] | undefined>(['conversations'], (old) => {
       if (!old) return old;
 
       return old.map(conv => {
@@ -99,7 +98,7 @@ export function useChat(conversationId?: string) {
   }, [initialMessages, conversationId]);
 
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ text, toUserId }: SendMessageRequest) => {
+    mutationFn: async ({ text }: SendMessageRequest) => {
       if (!conversationId) throw new Error('No hay conversación seleccionada');
 
       const userRole = isTrainer() ? 'TRAINER' : 'USER';
@@ -111,7 +110,7 @@ export function useChat(conversationId?: string) {
       });
 
       if (!success) {
-        const response = await fitdeskApi.post(`/chat/conversations/${conversationId}/messages`, {
+        const response = await fitdeskApi.post<ChatMessage>(`/chat/conversations/${conversationId}/messages`, {
           text,
           fromId: user?.id,
           fromRole: userRole

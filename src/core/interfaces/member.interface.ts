@@ -1,3 +1,7 @@
+export interface ImageUploadResponseDto {
+  url: string;
+}
+
 export interface MemberResponse {
   userId: string;
   firstName: string;

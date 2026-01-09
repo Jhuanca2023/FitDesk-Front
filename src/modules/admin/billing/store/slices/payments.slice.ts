@@ -110,7 +110,7 @@ export const createPaymentsSlice: StateCreator<
   },
 
   forceRenewal: async (paymentId: string) => {
-    const response = await fitdeskApi.post(`/payments/${paymentId}/renew`);
+    const response = await fitdeskApi.post<{ updatedPayment: Payment }>(`/payments/${paymentId}/renew`);
     
     set((state) => {
       state.payments = state.payments.map(payment => 
@@ -138,11 +138,11 @@ export const createPaymentsSlice: StateCreator<
   },
 
   exportPayments: async () => {
-    const response = await fitdeskApi.get('/payments/export', {
+    const response = await fitdeskApi.get<Blob>('/payments/export', {
       responseType: 'blob',
     });
     
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const url = window.URL.createObjectURL(response.data);
     const link = document.createElement('a');
     link.href = url;
     
@@ -163,7 +163,7 @@ export const createPaymentsSlice: StateCreator<
   },
 
   fetchBillingMetrics: async () => {
-    const response = await fitdeskApi.get('/admin/billing/metrics');
+    const response = await fitdeskApi.get<BillingMetrics>('/admin/billing/metrics');
     
     set((state) => {
       state.billingMetrics = response.data;
@@ -171,7 +171,7 @@ export const createPaymentsSlice: StateCreator<
   },
 
   fetchOverdueMembers: async () => {
-    const response = await fitdeskApi.get('/admin/billing/overdue-members');
+    const response = await fitdeskApi.get<OverdueMember[]>('/admin/billing/overdue-members');
     
     set((state) => {
       state.overdueMembers = Array.isArray(response.data) ? response.data : [];

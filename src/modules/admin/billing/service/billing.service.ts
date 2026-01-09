@@ -52,7 +52,7 @@ export const billingService = {
   },
 
   async getBillingMetrics(): Promise<BillingMetrics> {
-    const response = await fitdeskApi.get('/admin/billing/metrics');
+    const response = await fitdeskApi.get<BillingMetrics>('/admin/billing/metrics');
     return response.data;
   },
 
@@ -72,11 +72,11 @@ export const billingService = {
   },
 
   async exportPayments(): Promise<void> {
-    const response = await fitdeskApi.get('/payments/export', {
+    const response = await fitdeskApi.get<Blob>('/payments/export', {
       responseType: 'blob',
     });
     
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const url = window.URL.createObjectURL(response.data);
     const link = document.createElement('a');
     link.href = url;
     

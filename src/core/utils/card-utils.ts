@@ -1,3 +1,4 @@
+import type { CardType } from '@/core/store/payment.store';
 
 /**
  * Detecta el tipo de tarjeta basado en los primeros dígitos

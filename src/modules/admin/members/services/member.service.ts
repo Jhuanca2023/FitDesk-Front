@@ -191,7 +191,7 @@ export const memberService = {
     formData.append('file', file);
     formData.append('type', type);
 
-    const { data } = await fitdeskApi.post(`${BASE_URL}/upload`, formData, {
+    const { data } = await fitdeskApi.post<{ url: string }>(`${BASE_URL}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -208,7 +208,7 @@ export const memberService = {
       xml: 'application/xml'
     };
 
-    const response = await fitdeskApi.get(`${BASE_URL}/export`, {
+    const response = await fitdeskApi.get<Blob>(`${BASE_URL}/export`, {
       params: { format },
       responseType: 'blob',
       headers: {
